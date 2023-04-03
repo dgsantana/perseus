@@ -78,6 +78,7 @@ pub fn build_internal(
     let wb_spinner = cfg_spinner(wb_spinner, &wb_msg);
     let wb_dir = dir;
     let cargo_engine_exec = tools.cargo_engine.clone();
+    let engine_rustflags = read_rustcflags(PerseusMode::Engine);
     let sg_thread = spawn_thread(
         move || {
             handle_exit_code!(run_stage(
@@ -93,7 +94,7 @@ pub fn build_internal(
                 vec![
                     ("PERSEUS_ENGINE_OPERATION", "build"),
                     ("CARGO_TARGET_DIR", "dist/target_engine"),
-                    ("RUSTFLAGS", "--cfg=engine"),
+                    ("RUSTFLAGS", &engine_rustflags),
                     ("CARGO_TERM_COLOR", "always")
                 ],
                 verbose,
@@ -130,6 +131,7 @@ pub fn build_internal(
                 args=wasm_opt_args
             ));
             }
+            let client_rustflags = read_rustcflags(PerseusMode::Client);
             let cmds = cmds.iter().map(|s| s.as_str()).collect::<Vec<&str>>();
             handle_exit_code!(run_stage(
                 cmds,
@@ -145,7 +147,7 @@ pub fn build_internal(
                 } else {
                     vec![
                         ("CARGO_TARGET_DIR", "dist/target_wasm"),
-                        ("RUSTFLAGS", "--cfg=client"),
+                        ("RUSTFLAGS", &client_rustflags),
                         ("CARGO_TERM_COLOR", "always"),
                     ]
                 },
@@ -187,4 +189,43 @@ pub fn build(
 
     // We've handled errors in the component threads, so the exit code is now zero
     Ok(0)
+}
+
+pub enum PerseusMode {
+    Engine,
+    Client,
+}
+
+impl PerseusMode {
+    pub fn to_string(&self) -> String {
+        match self {
+            PerseusMode::Engine => "--cfg=engine".to_string(),
+            PerseusMode::Client => "--cfg=client".to_string(),
+        }
+    }
+}
+
+/// Reads the config.toml and returns the correct --cfg for the current build mode.
+pub fn read_rustcflags(mode: PerseusMode) -> String {
+    let config = match cargo_config2::Config::load() {
+        Ok(v) => v,
+        Err(_) => {
+            return mode.to_string();
+        }
+    };
+    let flags = match config.build.rustflags {
+        Some(v) => v,
+        None => return mode.to_string(),
+    };
+    if !flags.flags.is_empty() {
+        let clean_options = flags
+            .flags
+            .join(" ")
+            .replace("--cfg engine", "")
+            .replace("--cfg client", "");
+
+        format!("{} {}", mode.to_string(), clean_options)
+    } else {
+        mode.to_string()
+    }
 }

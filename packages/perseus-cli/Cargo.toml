@@ -30,6 +30,7 @@ path = "tests/lib.rs"
 include_dir = "0.7"
 thiserror = "1"
 fmterr = "0.1"
+cargo-config2 = "0.1"
 cargo_toml = "0.15"
 indicatif = "0.17" # Not stable, but otherwise error handling is just about impossible
 console = "0.15"
@@ -52,7 +53,6 @@ cargo_metadata = "0.15"
 cargo-lock = "8"
 minify-js = "=0.4.3" # Be careful changing this, and test extensively!
 walkdir = "2"
-toml = { version = "0.7" }
 
 [dev-dependencies]
 assert_cmd = "2"
