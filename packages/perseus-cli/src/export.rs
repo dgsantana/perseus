@@ -1,3 +1,4 @@
+use crate::build::{read_rustcflags, PerseusMode};
 use crate::cmd::{cfg_spinner, run_stage};
 use crate::install::Tools;
 use crate::parse::{ExportOpts, Opts};
@@ -164,7 +165,8 @@ pub fn export_internal(
         ..
     } = global_opts.clone();
     let crate_name = get_user_crate_name(&dir)?;
-    wasm_release_rustflags.push_str(" --cfg=client");
+    let client_rustflags = read_rustcflags(PerseusMode::Client);
+    wasm_release_rustflags.push_str(&client_rustflags.clone());
 
     // Exporting pages message
     let ep_msg = format!(
@@ -189,6 +191,7 @@ pub fn export_internal(
     let wb_spinner = cfg_spinner(wb_spinner, &wb_msg);
     let wb_target = dir;
     let cargo_engine_exec = tools.cargo_engine.clone();
+    let engine_rustflags = read_rustcflags(PerseusMode::Engine);
     let ep_thread = spawn_thread(
         move || {
             handle_exit_code!(run_stage(
@@ -204,7 +207,7 @@ pub fn export_internal(
                 vec![
                     ("PERSEUS_ENGINE_OPERATION", "export"),
                     ("CARGO_TARGET_DIR", "dist/target_engine"),
-                    ("RUSTFLAGS", "--cfg=engine"),
+                    ("RUSTFLAGS", &engine_rustflags),
                     ("CARGO_TERM_COLOR", "always")
                 ],
                 verbose,
@@ -256,7 +259,7 @@ pub fn export_internal(
                 } else {
                     vec![
                         ("CARGO_TARGET_DIR", "dist/target_wasm"),
-                        ("RUSTFLAGS", "--cfg=client"),
+                        ("RUSTFLAGS", &client_rustflags),
                         ("CARGO_TERM_COLOR", "always"),
                     ]
                 },

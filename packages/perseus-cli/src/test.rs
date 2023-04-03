@@ -1,3 +1,4 @@
+use crate::build::{read_rustcflags, PerseusMode};
 use crate::cmd::{cfg_spinner, run_stage};
 use crate::install::Tools;
 use crate::parse::{Opts, ServeOpts, TestOpts};
@@ -93,6 +94,7 @@ pub fn test(
         let test_spinner = cfg_spinner(test_spinner, &test_msg);
         let test_dir = dir;
         let headless = !test_opts.show_browser;
+        let engine_rustflags = read_rustcflags(PerseusMode::Engine);
         let test_thread = spawn_thread(
             move || {
                 handle_exit_code!(run_stage(
@@ -108,7 +110,7 @@ pub fn test(
                     if headless {
                         vec![
                             ("CARGO_TARGET_DIR", "dist/target_engine"),
-                            ("RUSTFLAGS", "--cfg=engine"),
+                            ("RUSTFLAGS", &engine_rustflags),
                             ("CARGO_TERM_COLOR", "always"),
                             ("PERSEUS_RUN_WASM_TESTS", "true"),
                             ("PERSEUS_RUN_WASM_TESTS_HEADLESS", "true"),
@@ -116,7 +118,7 @@ pub fn test(
                     } else {
                         vec![
                             ("CARGO_TARGET_DIR", "dist/target_engine"),
-                            ("RUSTFLAGS", "--cfg=engine"),
+                            ("RUSTFLAGS", &engine_rustflags),
                             ("CARGO_TERM_COLOR", "always"),
                             ("PERSEUS_RUN_WASM_TESTS", "true"),
                         ]

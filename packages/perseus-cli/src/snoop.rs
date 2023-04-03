@@ -1,3 +1,4 @@
+use crate::build::{read_rustcflags, PerseusMode};
 use crate::cmd::run_cmd_directly;
 use crate::install::Tools;
 use crate::parse::{Opts, SnoopServeOpts};
@@ -35,6 +36,7 @@ pub fn snoop_wasm_build(
     let crate_name = get_user_crate_name(&dir)?;
 
     println!("[NOTE]: You should expect unused code warnings here! Don't worry about them, they're just a product of the target-gating.");
+    let client_rustflags = read_rustcflags(PerseusMode::Client);
     let exit_code = run_cmd_directly(
         format!(
             "{} build --target wasm32-unknown-unknown {}",
@@ -43,7 +45,7 @@ pub fn snoop_wasm_build(
         &dir,
         vec![
             ("CARGO_TARGET_DIR", "dist/target_wasm"),
-            ("RUSTFLAGS", "--cfg=client"),
+            ("RUSTFLAGS", &client_rustflags),
         ],
     )?;
     if exit_code != 0 {
@@ -69,6 +71,7 @@ pub fn snoop_server(
     tools: &Tools,
     global_opts: &Opts,
 ) -> Result<i32, ExecutionError> {
+    let engine_rustflags = read_rustcflags(PerseusMode::Engine);
     run_cmd_directly(
         format!(
             "{} run {}",
@@ -80,7 +83,7 @@ pub fn snoop_server(
             ("CARGO_TARGET_DIR", "dist/target_engine"),
             ("PERSEUS_HOST", &opts.host),
             ("PERSEUS_PORT", &opts.port.to_string()),
-            ("RUSTFLAGS", "--cfg=engine"),
+            ("RUSTFLAGS", &engine_rustflags),
         ], /* Unlike the `serve` command, we're both
             * building and running here, so we provide
             * the operation */

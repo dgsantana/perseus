@@ -3,7 +3,7 @@ use crate::{
     errors::*,
     parse::{CheckOpts, Opts},
     thread::{spawn_thread, ThreadHandle},
-    Tools,
+    Tools, build::{read_rustcflags, PerseusMode},
 };
 use console::{style, Emoji};
 use indicatif::{MultiProgress, ProgressBar};
@@ -109,6 +109,7 @@ fn cargo_check(
     let browser_spinner = cfg_spinner(browser_spinner, &browser_msg);
     let browser_dir = dir;
     let cargo_engine_exec = tools.cargo_engine.clone();
+    let engine_rustflags = read_rustcflags(PerseusMode::Engine);
     let engine_thread = spawn_thread(
         move || {
             handle_exit_code!(run_stage(
@@ -124,7 +125,7 @@ fn cargo_check(
                     // and the browser simultaneously (different targets, so no
                     // commonalities gained by one directory)
                     ("CARGO_TARGET_DIR", "dist/target_engine"),
-                    ("RUSTFLAGS", "--cfg=engine"),
+                    ("RUSTFLAGS", &engine_rustflags),
                     ("CARGO_TERM_COLOR", "always")
                 ],
                 verbose,
@@ -134,6 +135,7 @@ fn cargo_check(
         },
         global_opts.sequential,
     );
+    let client_rustflags = read_rustcflags(PerseusMode::Client);
     let browser_thread = spawn_thread(
         move || {
             handle_exit_code!(run_stage(
@@ -146,7 +148,7 @@ fn cargo_check(
                 &browser_msg,
                 vec![
                     ("CARGO_TARGET_DIR", "dist/target_wasm"),
-                    ("RUSTFLAGS", "--cfg=client"),
+                    ("RUSTFLAGS", &client_rustflags),
                     ("CARGO_TERM_COLOR", "always")
                 ],
                 verbose,
@@ -183,6 +185,7 @@ fn run_static_generation(
     // We parallelize the first two spinners
     let spinner = spinners.insert(0, ProgressBar::new_spinner());
     let spinner = cfg_spinner(spinner, &msg);
+    let engine_rustflags = read_rustcflags(PerseusMode::Engine);
 
     handle_exit_code!(run_stage(
         vec![&format!("{} run {}", tools.cargo_engine, cargo_engine_args)],
@@ -192,7 +195,7 @@ fn run_static_generation(
         vec![
             ("PERSEUS_ENGINE_OPERATION", "build"),
             ("CARGO_TARGET_DIR", "dist/target_engine"),
-            ("RUSTFLAGS", "--cfg=engine"),
+            ("RUSTFLAGS", &engine_rustflags),
             ("CARGO_TERM_COLOR", "always")
         ],
         verbose,

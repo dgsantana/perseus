@@ -1,3 +1,4 @@
+use crate::build::{read_rustcflags, PerseusMode};
 use crate::cmd::{cfg_spinner, run_stage};
 use crate::errors::*;
 use crate::install::Tools;
@@ -55,6 +56,7 @@ pub fn tinker_internal(
     let tk_spinner = spinners.insert(0, ProgressBar::new_spinner());
     let tk_spinner = cfg_spinner(tk_spinner, &tk_msg);
     let tk_target = dir;
+    let engine_rustflags = read_rustcflags(PerseusMode::Engine);
     let tk_thread = spawn_thread(
         move || {
             handle_exit_code!(run_stage(
@@ -65,7 +67,7 @@ pub fn tinker_internal(
                 vec![
                     ("PERSEUS_ENGINE_OPERATION", "tinker"),
                     ("CARGO_TARGET_DIR", "dist/target_engine"),
-                    ("RUSTFLAGS", "--cfg=engine"),
+                    ("RUSTFLAGS", &engine_rustflags),
                     ("CARGO_TERM_COLOR", "always")
                 ],
                 verbose,

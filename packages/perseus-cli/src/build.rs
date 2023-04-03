@@ -52,7 +52,8 @@ pub fn build_internal(
         verbose,
         ..
     } = global_opts.clone();
-    wasm_release_rustflags.push_str(" --cfg=client");
+    let client_rustflags = read_rustcflags(PerseusMode::Client);
+    wasm_release_rustflags.push_str(&client_rustflags.clone());
 
     let crate_name = get_user_crate_name(&dir)?;
     // Static generation message
@@ -131,7 +132,6 @@ pub fn build_internal(
                 args=wasm_opt_args
             ));
             }
-            let client_rustflags = read_rustcflags(PerseusMode::Client);
             let cmds = cmds.iter().map(|s| s.as_str()).collect::<Vec<&str>>();
             handle_exit_code!(run_stage(
                 cmds,

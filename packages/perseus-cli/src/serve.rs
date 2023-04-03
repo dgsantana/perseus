@@ -1,4 +1,4 @@
-use crate::build::build_internal;
+use crate::build::{build_internal, read_rustcflags, PerseusMode};
 use crate::cmd::{cfg_spinner, run_stage};
 use crate::install::Tools;
 use crate::parse::{Opts, ServeOpts};
@@ -65,6 +65,7 @@ fn build_server(
     let sb_spinner = spinners.insert((num_steps - 1).into(), ProgressBar::new_spinner());
     let sb_spinner = cfg_spinner(sb_spinner, &sb_msg);
     let sb_target = dir;
+    let engine_rustflags = read_rustcflags(PerseusMode::Engine);
     let sb_thread = spawn_thread(
         move || {
             let (stdout, _stderr) = handle_exit_code!(run_stage(
@@ -81,7 +82,7 @@ fn build_server(
                 &sb_msg,
                 vec![
                     ("CARGO_TARGET_DIR", "dist/target_engine"),
-                    ("RUSTFLAGS", "--cfg=engine"),
+                    ("RUSTFLAGS", &engine_rustflags),
                     ("CARGO_TERM_COLOR", "always")
                 ],
                 // These are JSON logs, never print them (they're duplicated by the build logs
